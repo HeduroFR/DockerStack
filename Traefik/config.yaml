@@ -1,0 +1,58 @@
+tls:
+  options:
+    default:
+      minVersion: VersionTLS13
+      sniStrict: true
+
+entryPoints:
+  ssh:
+    address: ":22"
+
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    middleware-basic-auth:
+      basicAuth:
+        users:
+          - "test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
+          - "test2:$apr1$d9hr9HBB$4HxwgUir3HP4EsggP/QNo0"
+
+    middleware-cors:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Forwarded-Proto: "https"
+        accessControlAllowMethods:
+          - OPTION
+          - POST
+          - GET
+          - PUT
+          - DELETE
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+  routers:
+    router-example01:
+      service: service-example01
+      rule: "Host(`01.example.com`)"
+      tls:
+        certResolver: "letsencryptresolver"
+        domains:
+          - main: "01.example.com"
+      middlewares:
+        - middleware-cors
+
+  services:
+    service-example01:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.1.1:80"
